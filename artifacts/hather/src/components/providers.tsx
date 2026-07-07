@@ -91,7 +91,7 @@ const LanguageContext = createContext<LanguageProviderState | undefined>(undefin
 
 export function LanguageProvider({
   children,
-  defaultLanguage = 'en',
+  defaultLanguage = 'ar',
   storageKey = 'hather-language',
 }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<Language>(
