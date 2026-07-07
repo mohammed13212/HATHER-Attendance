@@ -11,8 +11,12 @@ export function Header() {
     <header className="w-full bg-gradient-to-r from-[#14532d] to-[#166534] text-white py-4 px-6 flex items-center justify-between z-10 sticky top-0 shadow-md">
       {/* Left side (Logo & Text) */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-[#064e3b] border border-white/20 flex items-center justify-center flex-shrink-0">
-          <span className="font-bold text-white text-sm">NBU</span>
+        <div className="w-12 h-12 rounded-full bg-[#064e3b] border border-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <img
+            src={`${import.meta.env.BASE_URL}nbu-logo.png`}
+            alt="Northern Border University"
+            className="w-full h-full object-contain p-1"
+          />
         </div>
         <div className="flex flex-col">
           <span className="font-bold text-lg leading-tight" dir="rtl">جامعة الحدود الشمالية</span>

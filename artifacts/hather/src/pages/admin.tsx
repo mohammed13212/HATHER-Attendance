@@ -40,8 +40,12 @@ export default function Admin() {
     <>
       {/* Logo */}
       <div className="h-20 flex items-center px-6 border-b border-white/10 gap-3 flex-shrink-0">
-        <div className="w-10 h-10 rounded-full bg-[#064e3b] border border-white/20 flex items-center justify-center">
-          <span className="font-bold text-white text-xs">NBU</span>
+        <div className="w-10 h-10 rounded-full bg-[#064e3b] border border-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+          <img
+            src={`${import.meta.env.BASE_URL}nbu-logo.png`}
+            alt="NBU"
+            className="w-full h-full object-contain p-0.5"
+          />
         </div>
         <span className="font-bold text-lg tracking-wide">Hather Admin</span>
         {/* Close button — mobile only */}
