@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "HATHER – QR Attendance"
+version = "1.0.0"
+id = "artifacts/hather"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18502
+
+[services.development]
+run = "pnpm --filter @workspace/hather run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hather", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hather/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18502"
+BASE_PATH = "/"
