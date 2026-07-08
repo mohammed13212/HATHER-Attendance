@@ -1,277 +1,438 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'wouter';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QRCodeSVG } from 'qrcode.react';
-import { ArrowLeft, ArrowRight, Copy, RefreshCw, StopCircle, Download, Plus, CheckCircle, Users, Clock } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import {
+  ArrowLeft, ArrowRight, Copy, RefreshCw, StopCircle, Download,
+  Plus, Users, Clock, BookOpen, Layers, Hash, Timer,
+  CalendarClock, CheckCircle, QrCode, Loader2,
+} from 'lucide-react';
 import { useLanguage } from '@/components/providers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+// ── helpers ────────────────────────────────────────────────────────────────────
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function formatClock(date: Date) {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Labelled input with a leading icon
+function FieldInput({
+  id, icon: Icon, label, value, onChange, placeholder, type = 'text', min,
+}: {
+  id: string;
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  min?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-sm font-medium text-foreground/80">
+        {label}
+      </Label>
+      <div className="relative">
+        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          min={min}
+          className="h-9 pl-9 text-sm"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── component ──────────────────────────────────────────────────────────────────
+
 export default function Teacher() {
   const { t, language } = useLanguage();
   const [, setLocation] = useLocation();
-  
-  const [course, setCourse] = useState('');
-  const [section, setSection] = useState('');
-  const [lecture, setLecture] = useState('');
-  const [duration, setDuration] = useState('60');
-  
-  const [sessionActive, setSessionActive] = useState(false);
-  const [attendeeCount, setAttendeeCount] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0); // in seconds
-  const [qrTimestamp, setQrTimestamp] = useState(Date.now());
-  const [qrRefreshCountdown, setQrRefreshCountdown] = useState(20);
 
-  // Auto-increment attendees while session is active
+  const [course, setCourse]     = useState('');
+  const [section, setSection]   = useState('');
+  const [lecture, setLecture]   = useState('');
+  const [duration, setDuration] = useState('60');
+
+  const [sessionActive, setSessionActive]           = useState(false);
+  const [sessionStartTime, setSessionStartTime]     = useState<Date | null>(null);
+  const [attendeeCount, setAttendeeCount]           = useState(0);
+  const [timeRemaining, setTimeRemaining]           = useState(0);
+  const [qrTimestamp, setQrTimestamp]               = useState(Date.now());
+  const [qrRefreshCountdown, setQrRefreshCountdown] = useState(20);
+  const [creating, setCreating]                     = useState(false);
+  const [copyFeedback, setCopyFeedback]             = useState(false);
+
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+
+  // Simulated attendee counter
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (sessionActive) {
-      interval = setInterval(() => {
-        setAttendeeCount(prev => prev + Math.floor(Math.random() * 3)); // Randomly add 0-2 attendees
-      }, 8000);
-    }
-    return () => clearInterval(interval);
+    if (!sessionActive) return;
+    const id = setInterval(() => {
+      setAttendeeCount(p => p + Math.floor(Math.random() * 3));
+    }, 8000);
+    return () => clearInterval(id);
   }, [sessionActive]);
 
-  // Session time remaining
+  // Countdown timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (sessionActive && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining(prev => prev - 1);
-      }, 1000);
-    } else if (sessionActive && timeRemaining === 0) {
-      setSessionActive(false);
+    if (!sessionActive || timeRemaining <= 0) {
+      if (sessionActive && timeRemaining === 0) setSessionActive(false);
+      return;
     }
-    return () => clearInterval(interval);
+    const id = setInterval(() => setTimeRemaining(p => p - 1), 1000);
+    return () => clearInterval(id);
   }, [sessionActive, timeRemaining]);
 
-  // QR refresh countdown
+  // QR auto-refresh
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (sessionActive) {
-      interval = setInterval(() => {
-        setQrRefreshCountdown(prev => {
-          if (prev <= 1) {
-            setQrTimestamp(Date.now());
-            return 20;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
+    if (!sessionActive) return;
+    const id = setInterval(() => {
+      setQrRefreshCountdown(p => {
+        if (p <= 1) { setQrTimestamp(Date.now()); return 20; }
+        return p - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
   }, [sessionActive]);
-
-  const handleGenerateSession = () => {
-    if (!course || !section || !lecture || !duration) return;
-    setAttendeeCount(0);
-    setTimeRemaining(parseInt(duration) * 60);
-    setQrRefreshCountdown(20);
-    setQrTimestamp(Date.now());
-    setSessionActive(true);
-  };
-
-  const handleCloseSession = () => {
-    setSessionActive(false);
-  };
-
-  const handleNewSession = () => {
-    setSessionActive(false);
-    setCourse('');
-    setSection('');
-    setLecture('');
-    setDuration('60');
-    setAttendeeCount(0);
-  };
 
   const attendanceUrl = `${window.location.origin}${import.meta.env.BASE_URL}?course=${encodeURIComponent(course)}&section=${encodeURIComponent(section)}&lecture=${encodeURIComponent(lecture)}&ts=${qrTimestamp}`;
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(attendanceUrl);
-    // Could add toast here
+  const handleGenerateSession = () => {
+    if (!course || !section || !lecture || !duration) return;
+    setCreating(true);
+    setTimeout(() => {
+      setAttendeeCount(0);
+      setTimeRemaining(parseInt(duration) * 60);
+      setQrRefreshCountdown(20);
+      setQrTimestamp(Date.now());
+      setSessionStartTime(new Date());
+      setSessionActive(true);
+      setCreating(false);
+    }, 800);
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  const handleCloseSession = () => setSessionActive(false);
+
+  const handleNewSession = () => {
+    setSessionActive(false);
+    setCourse(''); setSection(''); setLecture(''); setDuration('60');
+    setAttendeeCount(0); setSessionStartTime(null);
   };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(attendanceUrl).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    });
+  };
+
+  const handleDownloadQR = () => {
+    const canvas = qrContainerRef.current?.querySelector('canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `hather-qr-${course}-${section}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  const isExpired = !sessionActive && sessionStartTime !== null;
+  const canCreate = course && section && lecture && duration && !creating;
 
   return (
-    <div className="w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" size="sm" onClick={() => setLocation('/')} className="text-muted-foreground hover:text-foreground">
-          {language === 'ar' ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
-          {t('back')}
+    <div className="w-full max-w-7xl mx-auto px-1 animate-in fade-in slide-in-from-bottom-3 duration-400">
+
+      {/* Page header */}
+      <div className="flex items-center gap-3 mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation('/')}
+          className="text-muted-foreground hover:text-foreground gap-1.5 h-8 px-2"
+        >
+          {language === 'ar'
+            ? <ArrowRight className="w-4 h-4" />
+            : <ArrowLeft  className="w-4 h-4" />}
+          <span className="text-sm">{t('back')}</span>
         </Button>
-        <h1 className="text-3xl font-bold text-foreground">
-          {t('dashboard')}
-        </h1>
+        <div className="h-4 w-px bg-border" />
+        <h1 className="text-2xl font-bold text-foreground">{t('dashboard')}</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Panel */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          {!sessionActive ? (
-            <div className="glass-card p-6 md:p-8 rounded-2xl">
-              <h2 className="text-xl font-bold mb-6 text-foreground">{t('newSession')}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="space-y-2">
-                  <Label htmlFor="course">{t('course')}</Label>
-                  <Input id="course" value={course} onChange={e => setCourse(e.target.value)} placeholder="e.g. CS101" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="section">{t('section')}</Label>
-                  <Input id="section" value={section} onChange={e => setSection(e.target.value)} placeholder="e.g. 101" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lecture">{t('lecture')}</Label>
-                  <Input id="lecture" value={lecture} onChange={e => setLecture(e.target.value)} placeholder="e.g. 1" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration">{t('duration')} ({t('minutes')})</Label>
-                  <Input id="duration" type="number" value={duration} onChange={e => setDuration(e.target.value)} min="1" />
-                </div>
-              </div>
-              <Button 
-                size="lg" 
-                className="w-full text-lg h-14" 
-                onClick={handleGenerateSession}
-                disabled={!course || !section || !lecture || !duration}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* ── Left panel ─────────────────────────────────────────────────────── */}
+        <div className="lg:col-span-7 flex flex-col gap-5">
+          <AnimatePresence mode="wait">
+            {!sessionActive ? (
+              <motion.div
+                key="form"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="glass-card rounded-2xl p-6"
               >
-                {t('generateAttendance')}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              <div className="glass-card p-6 rounded-2xl">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-3 w-3 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
-                    <h2 className="text-xl font-bold text-foreground">{course} - {section}</h2>
-                  </div>
-                  <div className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                    {t('open')}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-background/50 rounded-xl p-4 border flex flex-col items-center justify-center text-center">
-                    <Users className="w-6 h-6 text-primary mb-2" />
-                    <span className="text-3xl font-bold text-foreground">{attendeeCount}</span>
-                    <span className="text-xs text-muted-foreground mt-1">{t('attendees')}</span>
-                  </div>
-                  <div className="bg-background/50 rounded-xl p-4 border flex flex-col items-center justify-center text-center">
-                    <Clock className="w-6 h-6 text-orange-500 mb-2" />
-                    <span className="text-3xl font-bold text-foreground font-mono">{formatTime(timeRemaining)}</span>
-                    <span className="text-xs text-muted-foreground mt-1">{t('timeRemaining')}</span>
-                  </div>
-                  <div className="bg-background/50 rounded-xl p-4 border flex flex-col items-center justify-center text-center">
-                    <span className="text-sm font-medium text-foreground mb-1">{t('lecture')}</span>
-                    <span className="text-2xl font-bold text-primary">{lecture}</span>
-                  </div>
-                  <div className="bg-background/50 rounded-xl p-4 border flex flex-col items-center justify-center text-center">
-                    <span className="text-sm font-medium text-foreground mb-1">{t('duration')}</span>
-                    <span className="text-2xl font-bold text-primary">{duration}m</span>
-                  </div>
+                <h2 className="text-base font-semibold text-foreground mb-5">{t('newSession')}</h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                  <FieldInput
+                    id="course" icon={BookOpen} label={t('course')}
+                    value={course} onChange={setCourse} placeholder="e.g. CS101"
+                  />
+                  <FieldInput
+                    id="section" icon={Layers} label={t('section')}
+                    value={section} onChange={setSection} placeholder="e.g. 101"
+                  />
+                  <FieldInput
+                    id="lecture" icon={Hash} label={t('lecture')}
+                    value={lecture} onChange={setLecture} placeholder="e.g. 1"
+                  />
+                  <FieldInput
+                    id="duration" icon={Timer}
+                    label={`${t('duration')} (${t('minutes')})`}
+                    value={duration} onChange={setDuration}
+                    type="number" min="1"
+                  />
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="destructive" onClick={handleCloseSession} className="flex-1 min-w-[140px]">
-                    <StopCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                    {t('closeAttendance')}
-                  </Button>
-                  <Button variant="outline" className="flex-1 min-w-[140px]">
-                    <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                    {t('downloadReport')}
-                  </Button>
-                  <Button variant="outline" onClick={handleNewSession} className="flex-1 min-w-[140px]">
-                    <Plus className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                    {t('newSession')}
-                  </Button>
+                <Button
+                  size="default"
+                  className="w-full h-10 text-sm font-semibold transition-all"
+                  onClick={handleGenerateSession}
+                  disabled={!canCreate}
+                >
+                  {creating ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      جاري الإنشاء...
+                    </span>
+                  ) : (
+                    t('generateAttendance')
+                  )}
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="session"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col gap-4"
+              >
+                {/* Session header card */}
+                <div className="glass-card rounded-2xl p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                      </span>
+                      <h2 className="text-base font-bold text-foreground">{course} — {section}</h2>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                      {t('open')}
+                    </span>
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                    <StatCard icon={<Users className="w-4 h-4 text-primary" />} value={String(attendeeCount)} label={t('attendees')} />
+                    <StatCard icon={<Clock className="w-4 h-4 text-orange-500" />} value={formatTime(timeRemaining)} label={t('timeRemaining')} mono />
+                    <StatCard icon={<Hash className="w-4 h-4 text-muted-foreground" />} value={lecture} label={t('lecture')} />
+                    <StatCard icon={<Timer className="w-4 h-4 text-muted-foreground" />} value={`${duration}m`} label={t('duration')} />
+                  </div>
+
+                  {/* Session meta */}
+                  {sessionStartTime && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      <span>{t('sessionStartedAt')} {formatClock(sessionStartTime)}</span>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="destructive" size="sm" onClick={handleCloseSession} className="flex-1 min-w-[130px] h-9 text-xs">
+                      <StopCircle className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                      {t('closeAttendance')}
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 min-w-[130px] h-9 text-xs">
+                      <Download className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                      {t('downloadReport')}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleNewSession} className="flex-1 min-w-[130px] h-9 text-xs">
+                      <Plus className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                      {t('newSession')}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Right Panel - QR Code */}
+        {/* ── Right panel — QR ────────────────────────────────────────────────── */}
         <div className="lg:col-span-5">
           <AnimatePresence mode="wait">
             {sessionActive ? (
-              <motion.div 
+              <motion.div
                 key="qr-active"
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center h-full min-h-[500px]"
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.25 }}
+                className="glass-card rounded-2xl p-6 flex flex-col items-center text-center"
               >
-                <motion.div 
+                {/* Status badge */}
+                <div className="flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800" role="status" aria-live="polite">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-semibold text-green-800 dark:text-green-400">{t('activeSession')}</span>
+                </div>
+
+                {/* QR code */}
+                <motion.div
                   key={qrTimestamp}
-                  initial={{ scale: 0.9, opacity: 0.8 }}
+                  initial={{ scale: 0.92, opacity: 0.7 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                  className="bg-white p-6 rounded-2xl border-4 border-primary/20 shadow-xl mb-8"
+                  transition={{ type: 'spring', stiffness: 220, damping: 18 }}
+                  className="bg-white p-4 rounded-xl border border-border/50 shadow-md mb-5"
+                  ref={qrContainerRef}
                 >
-                  <QRCodeSVG 
+                  <QRCodeCanvas
                     value={attendanceUrl}
-                    size={280}
+                    size={200}
                     level="H"
-                    fgColor="#052e16" // Dark green
+                    fgColor="#052e16"
                   />
                 </motion.div>
 
-                <div className="w-full max-w-xs mb-8">
-                  <div className="flex items-center justify-between text-sm mb-2">
+                {/* Refresh bar */}
+                <div className="w-full mb-5">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-muted-foreground">{t('refreshesIn')}</span>
-                    <span className="font-bold text-primary font-mono">{qrRefreshCountdown}s</span>
+                    <span className="font-mono font-bold text-primary">{qrRefreshCountdown}s</span>
                   </div>
-                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                    <motion.div 
-                      className="h-full bg-primary"
-                      initial={{ width: '100%' }}
+                  <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-primary rounded-full"
                       animate={{ width: `${(qrRefreshCountdown / 20) * 100}%` }}
-                      transition={{ duration: 1, ease: "linear" }}
+                      transition={{ duration: 1, ease: 'linear' }}
                     />
                   </div>
                 </div>
 
-                <div className="w-full flex gap-2 mb-4">
-                  <Input readOnly value={attendanceUrl} className="font-mono text-xs bg-background/50" />
-                  <Button variant="secondary" size="icon" onClick={copyToClipboard} title={t('copyLink')}>
-                    <Copy className="w-4 h-4" />
+                {/* URL row */}
+                <div className="w-full flex gap-2 mb-3">
+                  <Input
+                    readOnly
+                    value={attendanceUrl}
+                    className="font-mono text-[10px] h-8 bg-background/50 text-muted-foreground"
+                  />
+                  <Button
+                    variant={copyFeedback ? 'default' : 'secondary'}
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0 transition-colors"
+                    onClick={handleCopy}
+                    aria-label={t('copyLink')}
+                  >
+                    <AnimatePresence mode="wait">
+                      {copyFeedback ? (
+                        <motion.div key="check" initial={{ scale: 0.7 }} animate={{ scale: 1 }} exit={{ scale: 0.7 }}>
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        </motion.div>
+                      ) : (
+                        <motion.div key="copy" initial={{ scale: 0.7 }} animate={{ scale: 1 }} exit={{ scale: 0.7 }}>
+                          <Copy className="w-3.5 h-3.5" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </Button>
                 </div>
 
-                <Button variant="outline" className="w-full" onClick={() => {
-                  setQrTimestamp(Date.now());
-                  setQrRefreshCountdown(20);
-                }}>
-                  <RefreshCw className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
-                  {t('generateNewQr')}
-                </Button>
+                {/* Action buttons */}
+                <div className="w-full flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={handleDownloadQR}
+                    aria-label={t('downloadQr')}
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                    {t('downloadQr')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    aria-label={t('generateNewQr')}
+                    onClick={() => { setQrTimestamp(Date.now()); setQrRefreshCountdown(20); }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                    {t('generateNewQr')}
+                  </Button>
+                </div>
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="qr-inactive"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center h-full min-h-[500px] border-dashed"
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="glass-card rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[320px] border-dashed"
               >
-                <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                  <RefreshCw className="w-12 h-12 text-primary/30" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mb-4">
+                  <QrCode className="w-7 h-7 text-primary/35" />
                 </div>
-                <h3 className="text-lg font-semibold text-muted-foreground">{t('noSession')}</h3>
+                {isExpired ? (
+                  <p className="text-sm font-semibold text-muted-foreground">{t('sessionEnded')}</p>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-muted-foreground mb-1">{t('noSession')}</p>
+                    <p className="text-xs text-muted-foreground/70">{t('fillFormToStart')}</p>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Stat card sub-component ────────────────────────────────────────────────────
+function StatCard({ icon, value, label, mono = false }: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="bg-background/60 rounded-xl p-3 border flex flex-col items-center justify-center text-center gap-1">
+      {icon}
+      <span className={`text-xl font-bold text-foreground leading-none ${mono ? 'font-mono' : ''}`}>
+        {value}
+      </span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
     </div>
   );
 }

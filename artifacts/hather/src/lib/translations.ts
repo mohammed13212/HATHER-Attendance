@@ -46,6 +46,11 @@ export const translations = {
     viewAll: "View All",
     back: "Back",
     noSession: "No active session.",
+    activeSession: "Active Session",
+    sessionEnded: "Session ended",
+    sessionStartedAt: "Started at",
+    fillFormToStart: "Fill the form to start a session",
+    downloadQr: "Download QR",
   },
   ar: {
     appName: "حاضر",
@@ -92,5 +97,10 @@ export const translations = {
     viewAll: "عرض الكل",
     back: "رجوع",
     noSession: "لا توجد جلسة نشطة.",
+    activeSession: "جلسة نشطة",
+    sessionEnded: "انتهت الجلسة",
+    sessionStartedAt: "بدأت في",
+    fillFormToStart: "أدخل بيانات الجلسة للبدء",
+    downloadQr: "تحميل QR",
   }
 };
