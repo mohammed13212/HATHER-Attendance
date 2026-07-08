@@ -1,0 +1,218 @@
+The current HATHER project already has a solid foundation, and I do NOT want a complete redesign.
+
+I want you to improve and polish the existing application while keeping the same visual identity, color palette, and overall style.
+
+Our goal is to make the project feel like a real production-ready attendance system instead of a university assignment.
+
+==================================================
+1. Student Attendance Page
+==================================================
+
+Improve the current page by:
+
+- Reducing the excessive empty space above the content.
+- Centering the content vertically.
+- Making the attendance card slightly smaller and more balanced.
+- Reducing the width of the University ID input field.
+- Making the Check In button more noticeable with better contrast.
+- Improving spacing between all elements.
+- Keeping the interface minimal, clean, and modern.
+
+Validation:
+
+- University ID must contain exactly 9 digits.
+- Show clear validation messages.
+- Show a loading animation while attendance is being submitted.
+- Display a professional success message after successful check-in.
+- Display friendly error messages when something goes wrong.
+
+==================================================
+2. Teacher Dashboard
+==================================================
+
+Keep the current layout.
+
+Only improve it by:
+
+- Better spacing.
+- Better alignment.
+- Slightly smaller input fields.
+- Better typography.
+- Modern icons beside each field.
+
+Fields:
+
+- Course
+- Section
+- Lecture
+- Duration
+
+The dashboard should feel similar to modern SaaS applications.
+
+==================================================
+3. Active Attendance Session
+==================================================
+
+After the teacher creates a session, replace the empty panel with a professional session dashboard.
+
+Display:
+
+- QR Code
+- Attendance URL
+- Copy Link button
+- Download QR Code button
+- Session Status (Active / Expired)
+- Session Start Time
+- Remaining Time countdown
+
+The layout should be clean and easy to understand.
+
+==================================================
+4. Live Attendance Monitor
+==================================================
+
+This is one of the most important features.
+
+After the attendance session starts, show a Live Attendance Panel.
+
+It should update automatically whenever a student checks in.
+
+Display:
+
+- Total Students Checked In
+- Last Student Who Checked In
+- Last Check-In Time
+
+Also display a live attendance table.
+
+Columns:
+
+- Student ID
+- Check-In Time
+- Course
+- Section
+- Lecture
+
+The table should automatically refresh without requiring the teacher to reload the page.
+
+==================================================
+5. Search & Filter
+==================================================
+
+Above the attendance table add:
+
+- Search by Student ID
+- Filter by Course
+- Filter by Section
+
+==================================================
+6. Export
+==================================================
+
+Add an Export to Excel button.
+
+The teacher should be able to download the current attendance records as a properly formatted Excel (.xlsx) file.
+
+==================================================
+7. Backend
+==================================================
+
+Continue using:
+
+Node.js
+Express.js
+Microsoft Excel (.xlsx)
+
+Do NOT use:
+
+- Google Sheets
+- Google Apps Script
+- Firebase
+- MongoDB
+- MySQL
+- PostgreSQL
+
+Store attendance records inside an Excel file.
+
+If the file does not exist:
+
+Create it automatically.
+
+If it exists:
+
+Append new attendance records without overwriting previous rows.
+
+==================================================
+8. User Experience
+==================================================
+
+Improve the overall experience by adding:
+
+- Loading indicators
+- Success notifications
+- Error notifications
+- Smooth transitions
+- Hover effects
+- Disabled buttons while requests are processing
+
+Avoid unnecessary animations.
+
+==================================================
+9. Responsive Design
+==================================================
+
+Ensure every page works perfectly on:
+
+- Desktop
+- Laptop
+- Tablet
+- Mobile
+
+==================================================
+10. Code Quality
+==================================================
+
+Write clean, modular, professional code.
+
+Separate:
+
+- Frontend
+- Backend
+- Routes
+- Controllers
+- Utilities
+
+Avoid duplicate code.
+
+Use meaningful variable names.
+
+==================================================
+11. Teaching Mode
+==================================================
+
+I do not want you to only generate code.
+
+Act as my mentor.
+
+Before creating every important feature, explain:
+
+- Why it exists.
+- How it works.
+- Why it is implemented this way.
+- Which files are responsible for it.
+- How the frontend communicates with the backend.
+- How the backend reads and writes the Excel file.
+
+Teach me step by step while building the project.
+
+==================================================
+12. Final Goal
+==================================================
+
+The final product should look like software developed by a professional company, not a beginner or student project.
+
+Focus on simplicity, usability, maintainability, and real-world quality.
+
+Do not add unnecessary features.
+
+Every feature should improve the attendance workflow.
