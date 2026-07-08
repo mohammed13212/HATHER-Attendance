@@ -10,18 +10,9 @@ export function Header() {
   return (
     <header className="w-full bg-gradient-to-r from-[#14532d] to-[#166534] text-white py-4 px-6 flex items-center justify-between z-10 sticky top-0 shadow-md">
       {/* Left side (Logo & Text) */}
-      <div className="flex items-center gap-3">
-        <div className="w-14 h-14 rounded-full border-2 border-white/30 flex-shrink-0 overflow-hidden shadow-md bg-[#064e3b]">
-          <img
-            src={`${import.meta.env.BASE_URL}nbu-icon.png`}
-            alt="Northern Border University"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <div className="flex flex-col">
-          <span className="font-bold text-lg leading-tight" dir="rtl">جامعة الحدود الشمالية</span>
-          <span className="text-[13px] opacity-80 leading-tight" dir="ltr">Northern Border University</span>
-        </div>
+      <div className="flex flex-col">
+        <span className="font-bold text-lg leading-tight" dir="rtl">جامعة الحدود الشمالية</span>
+        <span className="text-[13px] opacity-80 leading-tight" dir="ltr">Northern Border University</span>
       </div>
       
       {/* Center (Empty) */}

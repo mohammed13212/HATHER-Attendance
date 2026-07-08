@@ -59,7 +59,7 @@ export default function Home() {
 
   const handleTeacherLogin = () => {
     if (!teacherPassword) return;
-    if (teacherPassword === 'wrong') {
+    if (teacherPassword !== '2004') {
       setTeacherError('كلمة المرور غير صحيحة / Incorrect password');
       return;
     }
