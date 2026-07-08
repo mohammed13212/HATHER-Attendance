@@ -78,18 +78,9 @@ export default function Home() {
       />
 
       {/* Top-right: University Logo */}
-      <div className="absolute top-5 right-6 flex items-center gap-3 z-20">
-        <div className="text-right">
-          <p className="text-white font-bold text-base leading-tight" dir="rtl">جامعة الحدود الشمالية</p>
-          <p className="text-white/75 text-xs font-sans leading-tight" dir="ltr">Northern Border University</p>
-        </div>
-        <div className="w-14 h-14 flex-shrink-0 rounded-full overflow-hidden border-2 border-white/30 shadow-lg bg-white/10">
-          <img
-            src={`${import.meta.env.BASE_URL}nbu-logo.png`}
-            alt="شعار جامعة الحدود الشمالية"
-            className="w-full h-full object-contain p-0.5"
-          />
-        </div>
+      <div className="absolute top-5 right-6 z-20 text-right">
+        <p className="text-white font-bold text-base leading-tight" dir="rtl">جامعة الحدود الشمالية</p>
+        <p className="text-white/75 text-xs font-sans leading-tight" dir="ltr">Northern Border University</p>
       </div>
 
       {/* Main content */}
