@@ -28,11 +28,7 @@ function Router() {
         </Route>
         
         <Route path="/">
-          <Header />
-          <main className="flex-1 w-full z-10 flex flex-col relative">
-            <Home />
-          </main>
-          <Footer />
+          <Home />
         </Route>
         
         <Route>
