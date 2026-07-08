@@ -11,11 +11,11 @@ export function Header() {
     <header className="w-full bg-gradient-to-r from-[#14532d] to-[#166534] text-white py-4 px-6 flex items-center justify-between z-10 sticky top-0 shadow-md">
       {/* Left side (Logo & Text) */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-[#064e3b] border border-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <div className="w-14 h-14 rounded-full border-2 border-white/30 flex-shrink-0 overflow-hidden shadow-md bg-[#064e3b]">
           <img
-            src={`${import.meta.env.BASE_URL}nbu-logo.png`}
+            src={`${import.meta.env.BASE_URL}nbu-icon.png`}
             alt="Northern Border University"
-            className="w-full h-full object-contain p-1"
+            className="w-full h-full object-cover"
           />
         </div>
         <div className="flex flex-col">
@@ -57,11 +57,5 @@ export function Header() {
 }
 
 export function Footer() {
-  return (
-    <footer className="w-full py-4 mt-auto text-center border-t border-border/10 z-10 relative bg-background/50 backdrop-blur-sm">
-      <p className="text-sm text-muted-foreground font-medium">
-        Developed by Mohammed AlMajed
-      </p>
-    </footer>
-  );
+  return null;
 }
