@@ -27,3 +27,20 @@ QR-based attendance system for Northern Border University.
 ### Generated QR Code
 
 ![HATHER Attendance](4.png)
+
+## About
+
+University project developed with the assistance of Replit AI. I customized the features, tested the application, and managed the project.
+
+## Tech Stack
+
+- HTML
+- CSS
+- TypeScript
+- Node.js
+- Replit AI
+- GitHub
+
+- ## Author
+
+**Mohammed al majed**
