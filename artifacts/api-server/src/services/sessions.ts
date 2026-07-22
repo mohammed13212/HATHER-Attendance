@@ -10,7 +10,7 @@ export type Session = {
   expiresAt: Date;
 };
 
-// In-memory store — lasts for the lifetime of the server process
+// In-memory store — persists for the lifetime of the server process.
 const store = new Map<string, Session>();
 
 export function createSession(params: {
@@ -21,9 +21,7 @@ export function createSession(params: {
 }): Session {
   const id = randomUUID();
   const startTime = new Date();
-  const expiresAt = new Date(
-    startTime.getTime() + params.durationMinutes * 60 * 1000
-  );
+  const expiresAt = new Date(startTime.getTime() + params.durationMinutes * 60 * 1000);
   const session: Session = { id, startTime, expiresAt, ...params };
   store.set(id, session);
   return session;

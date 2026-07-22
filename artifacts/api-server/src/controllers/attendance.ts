@@ -1,5 +1,5 @@
 import { type Request, type Response } from "express";
-import { getSession, isActive } from "../utils/sessions.js";
+import { getSession, isActive } from "../services/sessions.js";
 import { readAllRecords, appendRecord, buildExcelBuffer } from "../utils/excel.js";
 
 /** POST /api/attendance  —  record a student check-in */

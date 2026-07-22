@@ -1,5 +1,5 @@
 import { type Request, type Response } from "express";
-import { createSession, getSession, isActive, secondsRemaining } from "../utils/sessions.js";
+import { createSession, getSession, isActive, secondsRemaining } from "../services/sessions.js";
 
 /** POST /api/sessions  —  create a new attendance session */
 export async function handleCreateSession(req: Request, res: Response) {
