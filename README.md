@@ -17,3 +17,5 @@ QR-based attendance system for Northern Border University.
 ![HATHER Attendance](1.png)
 
 ### Teacher Login
+
+![HATHER Attendance](2.png)
