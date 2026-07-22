@@ -12,4 +12,4 @@ QR-based attendance system for Northern Border University.
 
 ## Screenshot
 
-![HATHER Attendance](https://raw.githubusercontent.com/mohammed13212/HATHER-Attendance/main/assets/1.png))
+![HATHER Attendance](1.png)
