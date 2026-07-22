@@ -19,3 +19,7 @@ QR-based attendance system for Northern Border University.
 ### Teacher Login
 
 ![HATHER Attendance](2.png)
+
+### QR Code Generator
+
+![HATHER Attendance](3.png)
