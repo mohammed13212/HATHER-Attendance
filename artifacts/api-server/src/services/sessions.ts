@@ -1,14 +1,7 @@
 import { randomUUID } from "node:crypto";
+import type { Session } from "../types/session.js";
 
-export type Session = {
-  id: string;
-  course: string;
-  section: string;
-  lecture: string;
-  durationMinutes: number;
-  startTime: Date;
-  expiresAt: Date;
-};
+export type { Session };
 
 // In-memory store — persists for the lifetime of the server process.
 const store = new Map<string, Session>();

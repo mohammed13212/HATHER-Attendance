@@ -6,7 +6,7 @@ import { useLanguage } from '@/components/providers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import type { translations } from '@/lib/translations';
+import type { translations } from '@/config/translations';
 
 type TranslationKey = keyof typeof translations.en;
 type StatusMsg = { type: 'success' | 'info' | 'error' | 'warning'; key: TranslationKey };

@@ -1,19 +1,14 @@
 import * as XLSX from "xlsx";
 import path from "node:path";
 import fs from "node:fs";
+import type { AttendanceRecord } from "../types/attendance.js";
+
+export type { AttendanceRecord };
 
 // Path is relative to the built dist/ output → ../data = api-server/data/
 const DATA_DIR = path.join(__dirname, "..", "data");
 const FILE_PATH = path.join(DATA_DIR, "attendance.xlsx");
 const SHEET_NAME = "Attendance";
-
-export type AttendanceRecord = {
-  studentId: string;
-  course: string;
-  section: string;
-  lecture: string;
-  checkInTime: string;
-};
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) {

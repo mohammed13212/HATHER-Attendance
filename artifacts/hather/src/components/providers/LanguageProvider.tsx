@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { type Language, translations } from '@/lib/translations';
+import { type Language, translations } from '@/config/translations';
 
 type LanguageProviderProps = {
   children: React.ReactNode;
