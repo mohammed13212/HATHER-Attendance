@@ -51,6 +51,7 @@ export const translations = {
     sessionStartedAt: "Started at",
     fillFormToStart: "Fill the form to start a session",
     downloadQr: "Download QR",
+    networkError: "Network error. Please check your connection and try again.",
   },
   ar: {
     appName: "حاضر",
@@ -102,5 +103,6 @@ export const translations = {
     sessionStartedAt: "بدأت في",
     fillFormToStart: "أدخل بيانات الجلسة للبدء",
     downloadQr: "تحميل QR",
+    networkError: "خطأ في الشبكة. يرجى التحقق من اتصالك والمحاولة مجدداً.",
   }
 };
