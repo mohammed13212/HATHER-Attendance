@@ -8,6 +8,7 @@ import {
   CalendarClock, CheckCircle, QrCode, Loader2,
 } from 'lucide-react';
 import { useLanguage } from '@/components/providers';
+import { generateToken, currentSlot } from '@/services/attendance';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,7 +79,37 @@ export default function Teacher() {
   const [creating, setCreating]                     = useState(false);
   const [copyFeedback, setCopyFeedback]             = useState(false);
 
+  // Anti-cheat token data minted by the Apps Script for the current slot
+  const [generatedAt, setGeneratedAt]   = useState<number | null>(null);
+  const [qrToken, setQrToken]           = useState<string | null>(null);
+  const [qrSlot, setQrSlot]             = useState<number | null>(null);
+  const [tokenError, setTokenError]     = useState(false);
+
   const qrContainerRef = useRef<HTMLDivElement>(null);
+  const tokenRequestId = useRef(0);
+
+  // Fetch a fresh HMAC token from the Apps Script for the current 20s slot
+  const refreshToken = async (startedAt: number, windowMinutes: number) => {
+    const reqId = ++tokenRequestId.current;
+    const slot = currentSlot();
+    try {
+      const { token, slot: mintedSlot } = await generateToken({
+        course, section, lecture,
+        generatedAt: startedAt,
+        windowMinutes,
+        slot,
+      });
+      if (reqId !== tokenRequestId.current) return;
+      setQrToken(token);
+      setQrSlot(mintedSlot);
+      setTokenError(false);
+    } catch {
+      if (reqId !== tokenRequestId.current) return;
+      setQrToken(null);
+      setQrSlot(null);
+      setTokenError(true);
+    }
+  };
 
   // Simulated attendee counter
   useEffect(() => {
@@ -99,32 +130,46 @@ export default function Teacher() {
     return () => clearInterval(id);
   }, [sessionActive, timeRemaining]);
 
-  // QR auto-refresh
+  // QR auto-refresh: every 20s, rotate the slot and mint a fresh token
   useEffect(() => {
-    if (!sessionActive) return;
+    if (!sessionActive || generatedAt === null) return;
+    const windowMinutes = parseInt(duration) || 60;
     const id = setInterval(() => {
       setQrRefreshCountdown(p => {
-        if (p <= 1) { setQrTimestamp(Date.now()); return 20; }
+        if (p <= 1) {
+          setQrTimestamp(Date.now());
+          void refreshToken(generatedAt, windowMinutes);
+          return 20;
+        }
         return p - 1;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [sessionActive]);
+  }, [sessionActive, generatedAt, duration]);
 
-  const attendanceUrl = `${window.location.origin}${import.meta.env.BASE_URL}?course=${encodeURIComponent(course)}&section=${encodeURIComponent(section)}&lecture=${encodeURIComponent(lecture)}&ts=${qrTimestamp}`;
+  const attendanceUrl = (() => {
+    const params = new URLSearchParams({ course, section, lecture });
+    if (generatedAt !== null) params.set('generatedAt', String(generatedAt));
+    params.set('windowMinutes', String(parseInt(duration) || 60));
+    if (qrToken) params.set('token', qrToken);
+    if (qrSlot !== null) params.set('slot', String(qrSlot));
+    return `${window.location.origin}${import.meta.env.BASE_URL}?${params.toString()}`;
+  })();
 
-  const handleGenerateSession = () => {
+  const handleGenerateSession = async () => {
     if (!course || !section || !lecture || !duration) return;
     setCreating(true);
-    setTimeout(() => {
-      setAttendeeCount(0);
-      setTimeRemaining(parseInt(duration) * 60);
-      setQrRefreshCountdown(20);
-      setQrTimestamp(Date.now());
-      setSessionStartTime(new Date());
-      setSessionActive(true);
-      setCreating(false);
-    }, 800);
+    const startedAt = Date.now();
+    const windowMinutes = parseInt(duration) || 60;
+    await refreshToken(startedAt, windowMinutes);
+    setGeneratedAt(startedAt);
+    setAttendeeCount(0);
+    setTimeRemaining(windowMinutes * 60);
+    setQrRefreshCountdown(20);
+    setQrTimestamp(startedAt);
+    setSessionStartTime(new Date(startedAt));
+    setSessionActive(true);
+    setCreating(false);
   };
 
   const handleCloseSession = () => setSessionActive(false);
@@ -133,6 +178,8 @@ export default function Teacher() {
     setSessionActive(false);
     setCourse(''); setSection(''); setLecture(''); setDuration('60');
     setAttendeeCount(0); setSessionStartTime(null);
+    setGeneratedAt(null); setQrToken(null); setQrSlot(null); setTokenError(false);
+    tokenRequestId.current++;
   };
 
   const handleCopy = () => {
@@ -383,7 +430,11 @@ export default function Teacher() {
                     size="sm"
                     className="flex-1 h-8 text-xs"
                     aria-label={t('generateNewQr')}
-                    onClick={() => { setQrTimestamp(Date.now()); setQrRefreshCountdown(20); }}
+                    onClick={() => {
+                      setQrTimestamp(Date.now());
+                      setQrRefreshCountdown(20);
+                      if (generatedAt !== null) void refreshToken(generatedAt, parseInt(duration) || 60);
+                    }}
                   >
                     <RefreshCw className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
                     {t('generateNewQr')}
