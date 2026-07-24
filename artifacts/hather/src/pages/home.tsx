@@ -7,13 +7,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import type { translations } from '@/config/translations';
+import { submitAttendance } from '@/services/attendance';
 
 type TranslationKey = keyof typeof translations.en;
-type StatusMsg = { type: 'success' | 'info' | 'error' | 'warning'; key: TranslationKey };
+type StatusMsg = {
+  type: 'success' | 'info' | 'error' | 'warning';
+  /** Bilingual message key — used for app-defined messages. */
+  key?: TranslationKey;
+  /** Raw message text returned by Google Apps Script. */
+  text?: string;
+};
 
 const toWesternDigits = (s: string) =>
   s.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0));
+
+/** Map known Apps Script error messages to bilingual keys; show anything else verbatim. */
+const mapScriptError = (message?: string): StatusMsg => {
+  if (!message) return { type: 'error', key: 'networkError' };
+  if (message.includes('مسجل مسبق') || message.toLowerCase().includes('already')) {
+    return { type: 'info', key: 'attendanceExists' };
+  }
+  if (message.includes('انتهت') || message.toLowerCase().includes('expired')) {
+    return { type: 'warning', key: 'sessionExpired' };
+  }
+  return { type: 'error', text: message };
+};
 
 export default function Home() {
   const { t } = useLanguage();
@@ -46,15 +65,23 @@ export default function Home() {
     setStatusMessage(null);
   };
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
     if (studentId.length !== 9 || isSubmitting) return;
     setIsSubmitting(true);
     setStatusMessage(null);
-    setTimeout(() => {
+    try {
+      const result = await submitAttendance({ studentId, ...(queryParams ?? {}) });
+      if (result.status === 'success') {
+        setStatusMessage({ type: 'success', key: 'attendanceSuccess' });
+        setStudentId('');
+      } else {
+        setStatusMessage(mapScriptError(result.message));
+      }
+    } catch {
+      setStatusMessage({ type: 'error', key: 'networkError' });
+    } finally {
       setIsSubmitting(false);
-      setStatusMessage({ type: 'success', key: 'attendanceSuccess' });
-      setStudentId('');
-    }, 1200);
+    }
   };
 
   const handleTeacherLogin = () => {
@@ -233,7 +260,7 @@ export default function Home() {
               <AnimatePresence mode="wait">
                 {statusMessage && (
                   <motion.div
-                    key={statusMessage.key}
+                    key={statusMessage.key ?? statusMessage.text}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
@@ -252,7 +279,7 @@ export default function Home() {
                     {statusMessage.type === 'error'   && <XCircle     className="w-4 h-4 flex-shrink-0" />}
                     {statusMessage.type === 'info'    && <Info         className="w-4 h-4 flex-shrink-0" />}
                     {statusMessage.type === 'warning' && <Clock        className="w-4 h-4 flex-shrink-0" />}
-                    <span>{t(statusMessage.key)}</span>
+                    <span>{statusMessage.key ? t(statusMessage.key) : statusMessage.text}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
