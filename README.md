@@ -1,14 +1,56 @@
 # HATHER Attendance
 
-QR-based attendance system for Northern Border University.
+HATHER is a web-based attendance system that simplifies classroom attendance using QR codes. Students scan a QR code, enter their university ID, and their attendance is recorded automatically.
 
-## Features
+The project was developed as a Computer Science project and focuses on providing a simple, responsive, and easy-to-use attendance experience for both students and instructors.
 
-- QR code-based attendance
-- Student ID verification
-- Arabic and English interface
-- Simple and responsive design
-- Attendance records storage
+
+## Technologies Used
+
+### Frontend
+- React
+- TypeScript
+- HTML
+- CSS
+
+### Backend
+- Node.js
+- Express
+
+### External Services
+- Google Apps Script
+- Google Sheets
+
+## Project Structure
+
+```
+HATHER/
+├── artifacts/
+│   ├── hather/          # Frontend
+│   └── api-server/      # Backend API
+├── lib/                 # Shared libraries
+├── README.md
+```
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+```
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Run the development server:
+
+```bash
+pnpm dev
+```
 
 ## Screenshot
 
@@ -28,18 +70,17 @@ QR-based attendance system for Northern Border University.
 
 ![HATHER Attendance](4.png)
 
-## About
+## Future Improvements
 
-University project developed with the assistance of Replit AI. I customized the features, tested the application, and managed the project.
+- Attendance reports.
+- Analytics dashboard.
+- Email notifications.
+- Better authentication.
+- Cloud deployment.
 
-## Tech Stack
+## License
 
-- HTML
-- CSS
-- TypeScript
-- Node.js
-- Replit AI
-- GitHub
+This project is intended for educational and portfolio purposes.
 
 - ## Author
 
