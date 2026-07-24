@@ -14,9 +14,10 @@ description: Exact wire protocol of the deployed HATHER Google Apps Script (uid/
 - `action=submitAttendance` — params `uid` (student ID — NOT studentId), course, section, lecture, generatedAt, windowMinutes, token, slot. Validation order: uid → lecture → link completeness → window → slot (must be current or previous; slot = floor(now/20000), 20s rotation) → HMAC token → sheet exists → student row → duplicate (✓ cell) → writes ✓ + timestamp.
 - Missing-uid error is literally "الرقم الجامعي غير موجود." — indistinguishable from a wrong param name; that red herring burned a session.
 
-**Server-side gotchas (user must fix, out of app's control):**
-- Script reads sheet tab named `الورقة1` with header columns "Student ID", "Lecture <n>", "Time <n>"; as of July 2026 the bound spreadsheet had NO such tab → every valid submit ended in "الشيت غير موجود.".
-- Roster is a pre-filled student list; script marks cells, never appends rows.
+**Server-side gotchas:**
+- Script reads sheet tab named `الورقة1` with header columns "Student ID", "Lecture <n>", "Time <n>". RESOLVED 2026-07-24: the tab was named "Attendance" — renamed to الورقة1 via Sheets API, lecture columns extended to 12, live e2e verified (submit→"ok"→✓+timestamp in cell; duplicate→"exists"). Success/duplicate messages: "تم تسجيل الحضور بنجاح." / "تم تسجيل الحضور مسبقًا.".
+- Roster is a pre-filled student list; script marks cells, never appends rows. Lecture numbers beyond the existing column pairs (currently 1–12) will fail server-side.
+- Attendance spreadsheet: title "حضور الطلاب", ID `1SK3W22D6Mg5kC4hWHwDsgVqZA9zeqgLBKm9CVTCTNFk`, single tab (sheetId 0), extra "Name " column (trailing space) is harmless — script matches headers by name.
 
 **How to apply:**
 - Frontend must send `uid` and forward all QR params verbatim; map statuses ok/exists/expired to bilingual keys, show `error` messages verbatim.
