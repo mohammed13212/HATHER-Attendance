@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: attendance
+    description: Live attendance data read from the attendance Google Sheet
 paths:
   /healthz:
     get:
@@ -24,6 +26,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /attendance/counts:
+    get:
+      operationId: getAttendanceCounts
+      tags: [attendance]
+      summary: Live check-in count for a lecture
+      description: >-
+        Reads the attendance Google Sheet and returns how many students have a
+        recorded check-in (✓) for the given lecture, plus the roster size.
+      parameters:
+        - name: lecture
+          in: query
+          required: true
+          description: Lecture number (matches the sheet's "Lecture N" column)
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Current counts for the lecture
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceCount"
+        "400":
+          description: Invalid lecture parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: The sheet has no column for this lecture
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "502":
+          description: The attendance sheet could not be read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +76,26 @@ components:
           type: string
       required:
         - status
-
+    AttendanceCount:
+      type: object
+      description: Live attendance numbers for one lecture
+      properties:
+        lecture:
+          type: integer
+        present:
+          type: integer
+          description: Students with a recorded check-in for this lecture
+        roster:
+          type: integer
+          description: Total students on the roster
+      required:
+        - lecture
+        - present
+        - roster
+    ErrorMessage:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

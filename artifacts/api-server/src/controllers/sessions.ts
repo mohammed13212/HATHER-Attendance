@@ -31,8 +31,9 @@ export async function handleCreateSession(req: Request, res: Response) {
 
 /** GET /api/sessions/:id  —  get session status */
 export async function handleGetSession(req: Request, res: Response) {
-  const { id } = req.params;
-  const session = getSession(id);
+  const raw = req.params["id"];
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  const session = id ? getSession(id) : undefined;
 
   if (!session) {
     res.status(404).json({ error: "sessionNotFound" });

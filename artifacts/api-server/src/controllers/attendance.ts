@@ -1,6 +1,39 @@
 import { type Request, type Response } from "express";
+import {
+  GetAttendanceCountsQueryParams,
+  GetAttendanceCountsResponse,
+} from "@workspace/api-zod";
 import { getSession, isActive } from "../services/sessions.js";
 import { readAllRecords, appendRecord, buildExcelBuffer } from "../utils/excel.js";
+import {
+  getLectureCounts,
+  LectureColumnMissingError,
+} from "../services/sheet.js";
+
+/** GET /api/attendance/counts — live check-in count read from the Google Sheet */
+export async function handleGetAttendanceCounts(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const parsed = GetAttendanceCountsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "lecture must be a positive integer" });
+    return;
+  }
+  const { lecture } = parsed.data;
+
+  try {
+    const { present, roster } = await getLectureCounts(lecture);
+    res.json(GetAttendanceCountsResponse.parse({ lecture, present, roster }));
+  } catch (err) {
+    if (err instanceof LectureColumnMissingError) {
+      res.status(404).json({ error: err.message });
+      return;
+    }
+    req.log.error({ err }, "Failed to read attendance counts from the sheet");
+    res.status(502).json({ error: "Could not read the attendance sheet" });
+  }
+}
 
 /** POST /api/attendance  —  record a student check-in */
 export async function handleCheckIn(req: Request, res: Response) {

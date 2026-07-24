@@ -5,9 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 /**
  * Live attendance numbers for one lecture
@@ -19,16 +16,3 @@ export interface AttendanceCount {
   /** Total students on the roster */
   roster: number;
 }
-
-export interface ErrorMessage {
-  error: string;
-}
-
-export type GetAttendanceCountsParams = {
-/**
- * Lecture number (matches the sheet's "Lecture N" column)
- * @minimum 1
- */
-lecture: number;
-};
-

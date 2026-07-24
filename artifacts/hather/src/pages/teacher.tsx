@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/components/providers';
 import { generateToken, currentSlot } from '@/services/attendance';
+import { useGetAttendanceCounts } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,7 +73,6 @@ export default function Teacher() {
 
   const [sessionActive, setSessionActive]           = useState(false);
   const [sessionStartTime, setSessionStartTime]     = useState<Date | null>(null);
-  const [attendeeCount, setAttendeeCount]           = useState(0);
   const [timeRemaining, setTimeRemaining]           = useState(0);
   const [qrTimestamp, setQrTimestamp]               = useState(Date.now());
   const [qrRefreshCountdown, setQrRefreshCountdown] = useState(20);
@@ -114,14 +114,18 @@ export default function Teacher() {
     }
   };
 
-  // Simulated attendee counter
-  useEffect(() => {
-    if (!sessionActive) return;
-    const id = setInterval(() => {
-      setAttendeeCount(p => p + Math.floor(Math.random() * 3));
-    }, 8000);
-    return () => clearInterval(id);
-  }, [sessionActive]);
+  // Live attendee count, read from the attendance sheet and refreshed while
+  // the session runs. No fabricated numbers: unknown states render as "—".
+  const lectureNumber = parseInt(lecture, 10);
+  const attendeeQuery = useGetAttendanceCounts(
+    { lecture: lectureNumber },
+    {
+      query: {
+        enabled: sessionActive && Number.isInteger(lectureNumber) && lectureNumber >= 1,
+        refetchInterval: 15_000,
+      },
+    },
+  );
 
   // Countdown timer
   useEffect(() => {
@@ -180,7 +184,6 @@ export default function Teacher() {
     const windowMinutes = parseInt(duration) || 60;
     await refreshToken(startedAt, windowMinutes);
     setGeneratedAt(startedAt);
-    setAttendeeCount(0);
     setTimeRemaining(windowMinutes * 60);
     setQrRefreshCountdown(20);
     setQrTimestamp(startedAt);
@@ -194,7 +197,7 @@ export default function Teacher() {
   const handleNewSession = () => {
     setSessionActive(false);
     setCourse(''); setSection(''); setLecture(''); setDuration('60');
-    setAttendeeCount(0); setSessionStartTime(null);
+    setSessionStartTime(null);
     setGeneratedAt(null); setQrToken(null); setQrSlot(null); setTokenError(false);
     tokenRequestId.current++;
   };
@@ -317,7 +320,11 @@ export default function Teacher() {
 
                   {/* Stats grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                    <StatCard icon={<Users className="w-4 h-4 text-primary" />} value={String(attendeeCount)} label={t('attendees')} />
+                    <StatCard
+                      icon={<Users className="w-4 h-4 text-primary" />}
+                      value={attendeeQuery.data ? `${attendeeQuery.data.present}/${attendeeQuery.data.roster}` : '—'}
+                      label={t('attendees')}
+                    />
                     <StatCard icon={<Clock className="w-4 h-4 text-orange-500" />} value={formatTime(timeRemaining)} label={t('timeRemaining')} mono />
                     <StatCard icon={<Hash className="w-4 h-4 text-muted-foreground" />} value={lecture} label={t('lecture')} />
                     <StatCard icon={<Timer className="w-4 h-4 text-muted-foreground" />} value={`${duration}m`} label={t('duration')} />
@@ -336,10 +343,6 @@ export default function Teacher() {
                     <Button variant="destructive" size="sm" onClick={handleCloseSession} className="flex-1 min-w-[130px] h-9 text-xs">
                       <StopCircle className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
                       {t('closeAttendance')}
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 min-w-[130px] h-9 text-xs">
-                      <Download className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
-                      {t('downloadReport')}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleNewSession} className="flex-1 min-w-[130px] h-9 text-xs">
                       <Plus className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
