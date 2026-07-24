@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import type { translations } from '@/config/translations';
-import { submitAttendance } from '@/services/attendance';
+import { submitAttendance, type AppsScriptResponse } from '@/services/attendance';
 
 type TranslationKey = keyof typeof translations.en;
 type StatusMsg = {
@@ -18,20 +18,35 @@ type StatusMsg = {
   text?: string;
 };
 
+/** Everything a QR link can carry; forwarded verbatim to the Apps Script. */
+type SessionQuery = {
+  course: string;
+  section: string;
+  lecture: string;
+  generatedAt?: string;
+  windowMinutes?: string;
+  token?: string;
+  slot?: string;
+};
+
 const toWesternDigits = (s: string) =>
   s.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0));
 
-/** Map known Apps Script error messages to bilingual keys; show anything else verbatim. */
-const mapScriptError = (message?: string): StatusMsg => {
-  if (!message) return { type: 'error', key: 'networkError' };
-  if (message.includes('مسجل مسبق') || message.toLowerCase().includes('already')) {
-    return { type: 'info', key: 'attendanceExists' };
+/** Translate the Apps Script reply into a status message for the existing UI. */
+const statusFromResponse = (result: AppsScriptResponse): StatusMsg => {
+  switch (result.status) {
+    case 'ok':
+      return { type: 'success', key: 'attendanceSuccess' };
+    case 'exists':
+      return { type: 'info', key: 'attendanceExists' };
+    case 'expired':
+      return { type: 'warning', key: 'sessionExpired' };
+    default:
+      return result.message
+        ? { type: 'error', text: result.message }
+        : { type: 'error', key: 'networkError' };
   }
-  if (message.includes('انتهت') || message.toLowerCase().includes('expired')) {
-    return { type: 'warning', key: 'sessionExpired' };
-  }
-  return { type: 'error', text: message };
 };
 
 export default function Home() {
@@ -45,7 +60,7 @@ export default function Home() {
   const [teacherPassword, setTeacherPassword] = useState('');
   const [teacherError, setTeacherError] = useState('');
 
-  const [queryParams, setQueryParams] = useState<{ course: string; section: string; lecture: string } | null>(null);
+  const [queryParams, setQueryParams] = useState<SessionQuery | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,7 +68,15 @@ export default function Home() {
     const section = params.get('section');
     const lecture = params.get('lecture');
     if (course && section && lecture) {
-      setQueryParams({ course, section, lecture });
+      setQueryParams({
+        course,
+        section,
+        lecture,
+        generatedAt: params.get('generatedAt') ?? undefined,
+        windowMinutes: params.get('windowMinutes') ?? undefined,
+        token: params.get('token') ?? undefined,
+        slot: params.get('slot') ?? undefined,
+      });
     }
   }, []);
 
@@ -70,12 +93,11 @@ export default function Home() {
     setIsSubmitting(true);
     setStatusMessage(null);
     try {
-      const result = await submitAttendance({ studentId, ...(queryParams ?? {}) });
-      if (result.status === 'success') {
-        setStatusMessage({ type: 'success', key: 'attendanceSuccess' });
+      const result = await submitAttendance({ uid: studentId, ...(queryParams ?? {}) });
+      const status = statusFromResponse(result);
+      setStatusMessage(status);
+      if (status.type === 'success') {
         setStudentId('');
-      } else {
-        setStatusMessage(mapScriptError(result.message));
       }
     } catch {
       setStatusMessage({ type: 'error', key: 'networkError' });
