@@ -5,7 +5,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import {
   ArrowLeft, ArrowRight, Copy, RefreshCw, StopCircle, Download,
   Plus, Users, Clock, BookOpen, Layers, Hash, Timer,
-  CalendarClock, CheckCircle, QrCode, Loader2,
+  CalendarClock, CheckCircle, QrCode, Loader2, AlertTriangle,
 } from 'lucide-react';
 import { useLanguage } from '@/components/providers';
 import { generateToken, currentSlot } from '@/services/attendance';
@@ -84,6 +84,7 @@ export default function Teacher() {
   const [qrToken, setQrToken]           = useState<string | null>(null);
   const [qrSlot, setQrSlot]             = useState<number | null>(null);
   const [tokenError, setTokenError]     = useState(false);
+  const [retryingToken, setRetryingToken] = useState(false);
 
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const tokenRequestId = useRef(0);
@@ -99,15 +100,17 @@ export default function Teacher() {
         windowMinutes,
         slot,
       });
-      if (reqId !== tokenRequestId.current) return;
+      if (reqId !== tokenRequestId.current) return false;
       setQrToken(token);
       setQrSlot(mintedSlot);
       setTokenError(false);
+      return true;
     } catch {
-      if (reqId !== tokenRequestId.current) return;
+      if (reqId !== tokenRequestId.current) return false;
       setQrToken(null);
       setQrSlot(null);
       setTokenError(true);
+      return false;
     }
   };
 
@@ -146,6 +149,20 @@ export default function Teacher() {
     }, 1000);
     return () => clearInterval(id);
   }, [sessionActive, generatedAt, duration]);
+
+  // The QR lacks valid token params — every scan would be rejected server-side
+  const qrInsecure = qrToken === null || qrSlot === null;
+
+  const handleRetryToken = async () => {
+    if (generatedAt === null || retryingToken) return;
+    setRetryingToken(true);
+    const ok = await refreshToken(generatedAt, parseInt(duration) || 60);
+    if (ok) {
+      setQrTimestamp(Date.now());
+      setQrRefreshCountdown(20);
+    }
+    setRetryingToken(false);
+  };
 
   const attendanceUrl = (() => {
     const params = new URLSearchParams({ course, section, lecture });
@@ -353,21 +370,54 @@ export default function Teacher() {
                   <span className="text-xs font-semibold text-green-800 dark:text-green-400">{t('activeSession')}</span>
                 </div>
 
+                {/* Token failure warning */}
+                {tokenError && (
+                  <div className="w-full mb-4 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-start" role="alert">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <p className="flex-1 text-xs font-semibold text-amber-800 dark:text-amber-300 leading-relaxed">
+                        {t('qrNotSecured')}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRetryToken}
+                      disabled={retryingToken}
+                      className="mt-2.5 h-8 w-full text-xs border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:text-amber-900 dark:hover:text-amber-200"
+                    >
+                      {retryingToken ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
+                      )}
+                      {t('retrySecureQr')}
+                    </Button>
+                  </div>
+                )}
+
                 {/* QR code */}
                 <motion.div
                   key={qrTimestamp}
                   initial={{ scale: 0.92, opacity: 0.7 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 220, damping: 18 }}
-                  className="bg-white p-4 rounded-xl border border-border/50 shadow-md mb-5"
+                  className="relative bg-white p-4 rounded-xl border border-border/50 shadow-md mb-5"
                   ref={qrContainerRef}
                 >
-                  <QRCodeCanvas
-                    value={attendanceUrl}
-                    size={200}
-                    level="H"
-                    fgColor="#052e16"
-                  />
+                  <div className={`transition-all duration-300 ${qrInsecure ? 'opacity-20 blur-[3px]' : ''}`}>
+                    <QRCodeCanvas
+                      value={attendanceUrl}
+                      size={200}
+                      level="H"
+                      fgColor="#052e16"
+                    />
+                  </div>
+                  {qrInsecure && (
+                    <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                      <AlertTriangle className="w-9 h-9 text-amber-500" />
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* Refresh bar */}
@@ -397,6 +447,7 @@ export default function Teacher() {
                     size="icon"
                     className="h-8 w-8 flex-shrink-0 transition-colors"
                     onClick={handleCopy}
+                    disabled={qrInsecure}
                     aria-label={t('copyLink')}
                   >
                     <AnimatePresence mode="wait">
@@ -420,6 +471,7 @@ export default function Teacher() {
                     size="sm"
                     className="flex-1 h-8 text-xs"
                     onClick={handleDownloadQR}
+                    disabled={qrInsecure}
                     aria-label={t('downloadQr')}
                   >
                     <Download className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0" />

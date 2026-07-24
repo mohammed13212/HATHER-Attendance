@@ -52,6 +52,8 @@ export const translations = {
     fillFormToStart: "Fill the form to start a session",
     downloadQr: "Download QR",
     networkError: "Network error. Please check your connection and try again.",
+    qrNotSecured: "This QR code isn't secured yet — student scans will be rejected until it refreshes successfully.",
+    retrySecureQr: "Retry securing the QR",
   },
   ar: {
     appName: "حاضر",
@@ -104,5 +106,7 @@ export const translations = {
     fillFormToStart: "أدخل بيانات الجلسة للبدء",
     downloadQr: "تحميل QR",
     networkError: "خطأ في الشبكة. يرجى التحقق من اتصالك والمحاولة مجدداً.",
+    qrNotSecured: "لم يتم تأمين رمز QR بعد — سيتم رفض مسح الطلاب حتى يتم تحديثه بنجاح.",
+    retrySecureQr: "إعادة محاولة تأمين الرمز",
   }
 };
